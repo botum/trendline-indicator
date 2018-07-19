@@ -4,12 +4,6 @@ import talib.abstract as ta
 from pandas import DataFrame
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 from freqtrade.strategy.interface import IStrategy
-# from scripts import trendy
-from indicators import in_range, went_down, get_trend_lines, get_pivots
-# from freqtrade.persistence import Pair
-
-# from freqtrade.persistence import *
-
 from user_data.indicators.trendlines import *
 
 class_name = 'DefaultStrategy'
@@ -28,9 +22,11 @@ class trend001(IStrategy):
 
     # Minimal ROI designed for the strategy
     minimal_roi = {
-        "1200":  0.000,
-        "600":  0.04,
-        "0":  0.05
+        "120":  0.00001,
+        "80":  0.01,
+        "60":  0.001,
+        "30":  0.005,
+        "0":  0.01
     }
 
     # Optimal stoploss designed for the strategy
@@ -45,14 +41,40 @@ class trend001(IStrategy):
         Indicator for trends
         """
 
-        # Bollinger bands
-        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_middleband'] = bollinger['mid']
-        dataframe['bb_upperband'] = bollinger['upper']
 
         # dataframe = get_pivots(self, dataframe)
-        dataframe = gentrends(self, dataframe, self.ticker_interval, chart=True)
+        # print (len(dataframe), 'before gentrends')
+        # dataframe = gentrends(self, dataframe.high,
+        #             interval=self.ticker_interval,
+        #             type='res', tolerance=0.001, confirmations=3,
+        #             slope_max = 20,
+        #             slope_min = 95,
+        #             chart=False)
+
+        # dataframe['res_trend'] = gentrends(self, dataframe.high,
+        #             interval=self.ticker_interval,
+        #             type='res', tolerance=0.001, confirmations=3,
+        #             angle_max = 20, angle_min = 95,
+        #             thresh_up = 0.01, thresh_down = -0.01,
+        #             chart=True)
+        dataframe['res_trend'], res_trends = gentrends(self, dataframe.high,
+                    interval=self.ticker_interval,
+                    type='res', tolerance=0.0001, confirmations=2,
+                    angle_max = 90,
+                    angle_min = -70,
+                    thresh_up = 0.02, thresh_down = -0.02,
+                    chart=False)
+        print ('first indicator')
+        dataframe['sup_trend'], sup_trends = gentrends(self, dataframe.low,
+                    interval=self.ticker_interval,
+                    type='sup', tolerance=0.0001, confirmations=3,
+                    angle_max = 180,
+                    angle_min = 0,
+                    thresh_up = 0.02, thresh_down = -0.02,
+                    chart=False)
+
+        # print (dataframe.sup_trend)
+        # plot_trends_new(dataframe, interval=self.ticker_interval)
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame) -> DataFrame:
@@ -64,7 +86,10 @@ class trend001(IStrategy):
 
         dataframe.loc[
             (
-                (in_range(dataframe['close'],dataframe['trendline-min']*1.001, 0.001))
+                (in_range(dataframe['close'],dataframe.sup_trend*1.001, 0.001))
+                &
+                (dataframe['close'].rolling(window=5).mean() > dataframe.sup_trend*1.002)
+                # (dataframe['close']==dataframe['sup_trend'])
             ),
             'buy'] = 1
         return dataframe
@@ -77,10 +102,10 @@ class trend001(IStrategy):
         """
         dataframe.loc[
             (
-                (dataframe['close'] >= dataframe['trendline-max']*0.99)
-                |
-                (dataframe['close'] <= dataframe['trendline-min'] * 0.95)
-
+                # (dataframe['close'] >= dataframe['res_trend'].shift(2))
+                # |
+                # (dataframe['close'] <= dataframe['sup_trend'] * 0.95)
+                0
             ),
             'sell'] = 1
         # print (dataframe.loc[dataframe['sell']==1].close)
