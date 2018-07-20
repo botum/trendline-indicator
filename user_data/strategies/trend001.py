@@ -87,8 +87,6 @@ class trend001(IStrategy):
         dataframe.loc[
             (
                 (in_range(dataframe['close'],dataframe.sup_trend*1.001, 0.001))
-                &
-                (dataframe['close'].rolling(window=5).mean() > dataframe.sup_trend*1.002)
                 # (dataframe['close']==dataframe['sup_trend'])
             ),
             'buy'] = 1

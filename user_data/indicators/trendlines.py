@@ -141,11 +141,11 @@ def get_confirmations(df, trend_name, pt, first):
 def gentrends(self, serie: Series, interval: int, type: str, tolerance: int, confirmations: int, \
             angle_min: int, angle_max: int, thresh_up: int, thresh_down: int, chart=False):
 
-    print ('------------------------------------------------------------------')
-    print ('                       Generating Trendlines                      ')
-    print ('------------------------------------------------------------------')
-
-    print ('type: ', type)
+    # print ('------------------------------------------------------------------')
+    # print ('                       Generating Trendlines                      ')
+    # print ('------------------------------------------------------------------')
+    #
+    # print ('type: ', type)
     #new dataframe for work
     df = serie.to_frame(name='val')
     df['trend']= Series()
@@ -157,7 +157,7 @@ def gentrends(self, serie: Series, interval: int, type: str, tolerance: int, con
                 '30m':60,
                 '15m':80,
                 '5m':100,
-                '1m':200
+                '1m':20
                 }
 
     window = volat_window[interval]
@@ -204,8 +204,8 @@ def gentrends(self, serie: Series, interval: int, type: str, tolerance: int, con
     # df.apply(foo, axis=1)
 
     # find all trends
-    print ('df: ', len(df))
-    print ('pivots: ', len(p))
+    # print ('df: ', len(df))
+    # print ('pivots: ', len(p))
     for i in range(0, len(p)-1):
         ax = p.index[i]
         ay = p.iloc[i].val
@@ -315,10 +315,10 @@ def gentrends(self, serie: Series, interval: int, type: str, tolerance: int, con
                 #     trends.append(trend)
 
     trends_names = [c for c in df if c.startswith('trend|')]
-    print ('trend count: ', len(trends_names))
-    print ('max-confirmations: ', max_confirmations)
-    print('pivots: ', len(df.loc[(df.pivots == -1) |(df.pivots == 1)]))
-    print ('setting sup/res')
+    # print ('trend count: ', len(trends_names))
+    # print ('max-confirmations: ', max_confirmations)
+    # print('pivots: ', len(df.loc[(df.pivots == -1) |(df.pivots == 1)]))
+    # print ('setting sup/res')
     # print (mask)
     trends_column_names = [c for c in df if c.startswith('trend|')]
     if type == "res":

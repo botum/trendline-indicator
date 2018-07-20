@@ -3,16 +3,8 @@ Ads trend-lines to the passed dataframe
 
 # How?
 
-This is first approach. Takes dataframe, process to peaks with a customized
-zig-zag library implementation and then finds trends with those points.
-
-Trends are find through a simple loop over the highs and lows, called 'A'
-(ax,ay), and the peaks that follow them called 'B' (bx, by) that are "seen" from
-the A point. I call this the Light House Trend Line, there might be a term
-already for this sure, but this is all about imagination, mainly spatial.
-
-Then we'll be adding more parameters to the processing to have finest trends
-needed for strategies.
+In this approach we are dealing with little information about 1000 tikers.
+At first I do not expect good results from this but it is interesting to try.
 
 # To do
 
