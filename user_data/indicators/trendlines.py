@@ -332,7 +332,7 @@ def gentrends(self, serie: Series, interval: int, type: str, tolerance: int, con
                 if row[t] != 0 and row[t] > row.val and row[t] < lower_res:
                     lower_res = row[t]
                     # print (lower_res)
-            if lower_res > 0:
+            if lower_res != 9999999999999:
                 # print ('higher', lower_res)
                 # row['trend'] = lower_res
                 return lower_res

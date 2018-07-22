@@ -64,7 +64,6 @@ class trend001(IStrategy):
                     angle_min = -70,
                     thresh_up = 0.02, thresh_down = -0.02,
                     chart=False)
-        print ('first indicator')
         dataframe['sup_trend'], sup_trends = gentrends(self, dataframe.low,
                     interval=self.ticker_interval,
                     type='sup', tolerance=0.0001, confirmations=3,
