@@ -35,7 +35,7 @@ class trend001(IStrategy):
     # Optimal ticker interval for the strategy
     ticker_interval = "5m"
 
-    def populate_indicators(self, dataframe: DataFrame) -> DataFrame:
+    def populate_indicators(self, dataframe: DataFrame, pair: str) -> DataFrame:
 
         """
         Indicator for trends
@@ -43,28 +43,28 @@ class trend001(IStrategy):
 
 
         # dataframe = get_pivots(self, dataframe)
-        # print (len(dataframe), 'before gentrends')
-        # dataframe = gentrends(self, dataframe.high,
+        # print (len(dataframe), 'before get_trends')
+        # dataframe = get_trends(self, dataframe.high,
         #             interval=self.ticker_interval,
         #             type='res', tolerance=0.001, confirmations=3,
         #             slope_max = 20,
         #             slope_min = 95,
         #             chart=False)
 
-        # dataframe['res_trend'] = gentrends(self, dataframe.high,
+        # dataframe['res_trend'] = get_trends(self, dataframe.high,
         #             interval=self.ticker_interval,
         #             type='res', tolerance=0.001, confirmations=3,
         #             angle_max = 20, angle_min = 95,
         #             thresh_up = 0.01, thresh_down = -0.01,
         #             chart=True)
-        dataframe['res_trend'], res_trends = gentrends(self, dataframe.high,
+        dataframe['res_trend'], res_trends = get_trends(self, dataframe.high,
                     interval=self.ticker_interval,
                     type='res', tolerance=0.0001, confirmations=2,
                     angle_max = 90,
                     angle_min = -70,
                     thresh_up = 0.02, thresh_down = -0.02,
                     chart=False)
-        dataframe['sup_trend'], sup_trends = gentrends(self, dataframe.low,
+        dataframe['sup_trend'], sup_trends = get_trends(self, dataframe.low,
                     interval=self.ticker_interval,
                     type='sup', tolerance=0.0001, confirmations=3,
                     angle_max = 180,

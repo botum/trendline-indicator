@@ -138,7 +138,7 @@ def get_confirmations(df, trend_name, pt, first):
 
     return trend_confirmations
 
-def gentrends(self, serie: Series, interval: int, type: str, tolerance: int, confirmations: int, \
+def get_trends(self, serie: Series, interval: int, type: str, tolerance: int, confirmations: int, \
             angle_min: int, angle_max: int, thresh_up: int, thresh_down: int, chart=False):
 
     # print ('------------------------------------------------------------------')
