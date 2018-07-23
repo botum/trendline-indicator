@@ -14,3 +14,13 @@ At first I do not expect good results from this but it is interesting to try.
   * slope_min: minimal angle of valid trendlines
   * slope_max: maximum angle of valid trendlines
   * Log scale option
+
+# Current plots
+
+This are current plots, which are not very usefull. Based on not very tunned settings, only 999 tickers of data. 
+
+![trendlines](https://raw.githubusercontent.com/botum/trendline-indicator/on-the-fly/user_data/plots/BCN-BTC-15m-19.png)
+![trendlines](https://raw.githubusercontent.com/botum/trendline-indicator/on-the-fly/user_data/plots/EOS-BTC-15m-19.png)
+![trendlines](https://raw.githubusercontent.com/botum/trendline-indicator/on-the-fly/user_data/plots/LTC-BTC-15m-19.png)
+![trendlines](https://raw.githubusercontent.com/botum/trendline-indicator/on-the-fly/user_data/plots/MFT-BTC-15m-19.png)
+![trendlines](https://raw.githubusercontent.com/botum/trendline-indicator/on-the-fly/user_data/plots/VEN-BTC-15m-19.png)
