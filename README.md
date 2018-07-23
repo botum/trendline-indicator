@@ -1,3 +1,6 @@
+# ALERT
+All this code is very experimental, not even close to having a release, has flaws all over. WIP
+
 # trendline-indicator
 Ads trend-lines to the passed dataframe
 
