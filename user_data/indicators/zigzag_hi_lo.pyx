@@ -101,7 +101,8 @@ cpdef peak_valley_pivots(double [:] L,
 
     for t in range(1, t_n):
         x = L[t]
-        r = x / last_pivot_x
+        if last_pivot_x != 0 and x != 0:
+          r = x / last_pivot_x
 
         up_thresh = E[t] + 1
         down_thresh = -E[t] + 1
