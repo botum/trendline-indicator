@@ -46,27 +46,27 @@ class trend001(IStrategy):
         # print (len(dataframe), 'before get_trends')
         # dataframe = get_trends(self, dataframe.high,
         #             interval=self.ticker_interval,
-        #             type='res', tolerance=0.001, confirmations=3,
+        #             type='res', tolerance=0.001, min_tests=3,
         #             slope_max = 20,
         #             slope_min = 95,
         #             chart=False)
 
         # dataframe['res_trend'] = get_trends(self, dataframe.high,
         #             interval=self.ticker_interval,
-        #             type='res', tolerance=0.001, confirmations=3,
+        #             type='res', tolerance=0.001, min_tests=3,
         #             angle_max = 20, angle_min = 95,
         #             thresh_up = 0.01, thresh_down = -0.01,
         #             chart=True)
         dataframe['res_trend'], res_trends = get_trends_serie(self, dataframe.high,
                     interval=self.ticker_interval,
-                    type='res', tolerance=0.0001, confirmations=2,
+                    type='res', tolerance=0.0001, min_tests=2,
                     angle_max = 90,
                     angle_min = -70,
                     thresh_up = 0.02, thresh_down = -0.02,
                     chart=False)
         dataframe['sup_trend'], sup_trends = get_trends_serie(self, dataframe.low,
                     interval=self.ticker_interval,
-                    type='sup', tolerance=0.0001, confirmations=3,
+                    type='sup', tolerance=0.0001, min_tests=3,
                     angle_max = 180,
                     angle_min = 0,
                     thresh_up = 0.02, thresh_down = -0.02,
