@@ -27,16 +27,16 @@ class trendOHCL001(IStrategy):
         # "30":  0.002,
         # "60":  0.005,
         # "30":  0.02,
-        "0":  0.03
+        "0":  0.02
     }
 
     # Optimal stoploss designed for the strategy
-    stoploss = -0.03
+    stoploss = -0.02
 
     # Optimal ticker interval for the strategy
-    ticker_interval = "1m"
+    ticker_interval = "5m"
 
-    def populate_indicators(self, dataframe: DataFrame, pair: str) -> DataFrame:
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
         """
         Indicator for trends
@@ -67,29 +67,12 @@ class trendOHCL001(IStrategy):
         #
         # dataframe['mfi'] = ta.MFI(dataframe)
 
-        # dataframe['vol_res_trend'], rsi_sup_trends = get_trends_serie(self, dataframe['volume'],
-        #             interval=self.ticker_interval,
-        #             type='res', tolerance=0.0000001, min_tests=1,
-        #             angle_max = 180,
-        #             angle_min = -180,
-        #             thresh_up = 5, thresh_down = -5,
-        #             chart=True)
-        # print (dataframe['rsi_res_trend'])
-        # dataframe['rsi_sup_trend'], rsi_sup_trends = get_trends_serie(self, dataframe['rsi'],
-        #             interval=self.ticker_interval,
-        #             type='sup', tolerance=0.0001, min_tests=8,
-        #             angle_max = 180,
-        #             angle_min = 0,
-        #             thresh_up = 0.008, thresh_down = -0.008,
-        #             chart=False)
-        # dataframe['cmf'] = cmf(dataframe)
-
         dataframe = get_trends_lightbuoy_OHCL(dataframe,
-            interval=self.ticker_interval, pivot_type='pivots',
-            tolerance=0.00001, su_min_tests=4, re_min_tests=2, body_min_tests=1, ticker_gap = 5, fake=0.0001, nearby=0.001,
+            interval=self.ticker_interval, pivot_type='fractals',
+            pressision=0.00001, su_min_tests=4, re_min_tests=1, body_min_tests=1, ticker_gap = 5, fake=0.0001, nearby=0.001,
             angle_max = 100, angle_min = 80,
             thresh_up = 0.01, thresh_down = -0.01,
-            chart=False, pair=pair)
+            chart=False, pair=metadata['pair'])
 
         # dataframe, su, re = get_sure_zigzag_OHCL(self, dataframe,
         #             intervals=[self.ticker_interval], quantile=0.03,
@@ -104,7 +87,7 @@ class trendOHCL001(IStrategy):
 
         return dataframe
 
-    def populate_buy_trend(self, dataframe: DataFrame, pair: str) -> DataFrame:
+    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
         Based on TA indicators, populates the buy signal for the given dataframe
         :param dataframe: DataFrame
@@ -113,16 +96,18 @@ class trendOHCL001(IStrategy):
 
         dataframe.loc[
             (
+                ((dataframe['close'] * 10000000 > 1))
+                &
                 (dataframe['close'] == dataframe.s1_trend)
                 # |
                 # (dataframe['close'] > dataframe.re_trend)
                 # (dataframe['close'] <= dataframe.sup_trend)
-                &
-                (dataframe['volume'].shift(1) < dataframe['volume']/10)
-                &
-                (dataframe['rsi'] < 25)
-                &
-                (dataframe.r1_trend >= dataframe.s1_trend*1.03)
+                # &
+                # (dataframe['volume'].shift(1) < dataframe['volume']/10)
+                # &
+                # (dataframe['rsi'] < 25)
+                # &
+                # (dataframe.r1_trend >= dataframe.s1_trend*1.03)
                 # (dataframe['close']==dataframe['sup_trend'])
                 # 0
             ),
@@ -130,11 +115,11 @@ class trendOHCL001(IStrategy):
 
 
         # UNCOMMENT TO PLOT
-        # self.plot_dataframe(dataframe, pair, ['s1_trend,r1_trend', '', 'rsi'])
+        self.plot_dataframe(dataframe, metadata['pair'], 'buy', ['s1_trend,r1_trend', '', 'rsi'])
 
         return dataframe
 
-    def populate_sell_trend(self, dataframe: DataFrame) -> DataFrame:
+    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
         Based on TA indicators, populates the sell signal for the given dataframe
         :param dataframe: DataFrame
@@ -144,17 +129,19 @@ class trendOHCL001(IStrategy):
             (
                 (dataframe['close'] >= dataframe['r1_trend'])
                 |
-                (dataframe['close'] <= dataframe['s1_trend'] * 0.998)
+                (dataframe['close'] <= dataframe['s1_trend'] * 0.99)
                 # |
                 # (dataframe['close'] <= dataframe['sup_trend'] * (1 - dataframe.iloc[-1].bb_exp))
                 # 0
             ),
             'sell'] = 1
 
+        # UNCOMMENT TO PLOT
+        self.plot_dataframe(dataframe, metadata['pair'], 'sell', ['s1_trend,r1_trend', '', 'rsi'])
         return dataframe
 
 
-    def plot_dataframe(self, data, pair, indicators: list):
+    def plot_dataframe(self, data, pair, signal: str, indicators: list):
         """
         plots our dataframe everytime new data arrive
         and a tick is closed
@@ -251,4 +238,4 @@ class trendOHCL001(IStrategy):
         from pathlib import Path
         plt(fig, auto_open=False, filename=str(
             Path('user_data').joinpath(
-                "{}_{}_analyze_{}_{}.html".format(__class__.__name__, pair.replace('/', '-'), self.ticker_interval, data['date'].iloc[-1]))))
+                "{}_{}_{}_analyze_{}_{}.html".format(__class__.__name__, pair.replace('/', '-'), signal, self.ticker_interval, data['date'].iloc[-1]))))

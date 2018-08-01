@@ -22,14 +22,14 @@ pyximport.install(reload_support=True)
 
 
 
-def get_trends_OHCL(df: DataFrame, interval: int, tolerance: int, pivot_type: str, \
+def get_trends_OHCL(df: DataFrame, interval: int, pressision: int, pivot_type: str, \
                      su_min_tests: int, re_min_tests: int, body_min_tests: int, \
                      ticker_gap: int, fake: int, nearby: int, angle_min: int, \
                      angle_max: int, thresh_up: int, thresh_down: int, \
                      chart=False, pair: str=None):
     ''' this approach is based on concurrence of points, either low high or body of candle'''
 
-    start_time = time.time()
+    # start_time = time.time()
     print('finding trends by concurrence')
 
     if pivot_type == 'pivots':
@@ -82,10 +82,10 @@ def get_trends_OHCL(df: DataFrame, interval: int, tolerance: int, pivot_type: st
                     del df[su_name]
                     del df[body_name]
 
-    print("--- %s seconds ---" % (time.time() - start_time))
+    # print("--- %s seconds ---" % (time.time() - start_time))
     return df
 
-def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, tolerance: int, pivot_type: str, \
+def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, pressision: int, pivot_type: str, \
                      su_min_tests: int, re_min_tests: int, body_min_tests: int, \
                      ticker_gap: int, fake: int, nearby: int, angle_min: int, \
                      angle_max: int, thresh_up: int, thresh_down: int, \
@@ -110,6 +110,19 @@ def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, tolerance: int, pivo
     # df = get_fractals(df)
 
     trends = []
+    '''structure:
+    - confirmed_trends[{'ax': ax, 'ay':ay...}, {}, {}]
+    '''
+    trends = DataFrame(columns=[
+            'name',
+            'interval',
+            'a',
+            'b',
+            'angle',
+            'su_conf',
+            're_conf',
+            'body_conf'
+            ])
 
     r = df.loc[df[pivot_type]==1]
     rx = r.index[0]
@@ -120,21 +133,20 @@ def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, tolerance: int, pivo
 
     # just working with supports now
     p = s
-    last=len(p)-3
-    i=0
-    ai = i
-    df.loc[0:p.index[1],'s1_trend'] = p.iloc[i].low
+    last=len(p)-2
+    ia = 0
+    ib = 0
+    df.loc[0:p.index[1],'s1_trend'] = p.iloc[0].low
 
-    prev_ai = []
+    ax = p.index[0]
+    ay = p.iloc[0].low
+
+    bx = p.index[1]
+    by = p.iloc[1].low
 
     b=True
 
     while b:
-        ax = p.index[i]
-        ay = p.iloc[i].low
-
-        bx = p.index[i+1]
-        by = p.iloc[i+1].low
 
         # trace first trend
         t = df.index[ax:]
@@ -144,69 +156,68 @@ def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, tolerance: int, pivo
         trend_name = 'trend|'+str(ax)+'|'+str(ay)+'|'+str(bx)+'|'+str(by)+'|'+str(round(angle))
         df.loc[ax:,trend_name] = trend
 
-        df = get_line_tests(df, trend_name, pivot_type, nearby, fake)
+        # df = get_line_tests(df, trend_name, pivot_type, nearby, fake)
         data_name = 'data_'+ trend_name
 
         re_name = data_name+'|re'
         su_name = data_name+'|su'
         body_name = data_name+'|body'
 
-        trend = {'name':trend_name,
+        trends = trends.append({
+                'name':trend_name,
                 'interval':interval,
-                'a':[ax, ay, df.iloc[ax].date],
-                'b':[bx, by, df.iloc[bx].date],
-                'linregress'
+                'a':[ax, ay],
+                'b':[bx, by],
                 'angle':angle,
-                'su_conf':np.count_nonzero(df[su_name]), # just so we know last totals
-                're_conf':np.count_nonzero(df[re_name]),
-                'body_conf':np.count_nonzero(df[body_name]),
-                'type':'res',
-                'last':False,
-                'max':False,
-                'min':False}
-        trends.append(trend)
+                'su_test':2, # just so we know last totals
+                're_test':0,
+                'body_test':0
+                }, ignore_index=True)
 
-        # check indicator parameters
-        cond = angle >= angle_min and angle <= angle_max \
-                and np.count_nonzero(df[su_name]) >= su_min_tests
-
-        # set it as support if valid
-        if cond == True and (df.iloc[bx][trend_name]) <= df.iloc[bx]['low']:
-            df.loc[bx:,'s1_trend'] = df.loc[bx:,trend_name]
-
+        trend_row = trends.iloc[-1]
         # next point
-        nx = p.index[i+2]
-        ny = p.iloc[i+2].low
-
-        if ny <= (df.loc[nx][trend_name]):
-            # we can use this support broken as resistance but better do it after a confirmation
-            # still need to draw the line from the confirmation point, right now from third point nx
-            if cond == True and (df.iloc[nx][trend_name]) >= df.iloc[nx]['high'] and angle < 90:
-                df.loc[bx:,'r1_trend'] = df.loc[bx:,trend_name]
-            if len(prev_ai)>0:
-                ai = prev_ai.pop()
-                ax = p.index[ai]
-                ay = p.iloc[ai].low
-            else:
-                ai = i
-                ax = p.index[ai]
-                ay = p.iloc[ai].low
-            bx = nx
-            by = ny
-        elif ny > (df.loc[nx][trend_name]):
-            if cond == True and (df.iloc[nx][trend_name]) <= df.iloc[nx]['low'] and angle > 90:
-                df.loc[nx:,'s1_trend'] = df.loc[nx:,trend_name]
+        nx = p.index[ib+1]
+        ny = p.iloc[ib+1].low
+        if ny >= (df.loc[nx][trend_name]):
+            if in_range(ny, df.loc[nx][trend_name], pressision):
+                tests = trends.at[trend_row.index[0], su_name] = trends.iloc[-1]['su_test'] + 1
+            # else:
+                # cond =  angle >= angle_min and angle <= angle_max \
+                #         and trend['su_test'] >= su_min_tests
+                #         # and (df.iloc[nx][trend_name]) >= df.iloc[nx]['low']
+                # if tests >= su_min_tests :
+                    # df.loc[bx:,'r1_trend'] = df.loc[bx:,trend_name]
+            df.loc[nx:,'s1_trend'] = df.loc[nx:,trend_name]
             ax = bx
             ay = by
-            prev_ai.append(i)
             bx = nx
             by = ny
         else:
+            # if cond == True and (df.iloc[nx][trend_name]) <= df.iloc[nx]['low'] and angle > 90:
+            #     df.loc[nx:,'s1_trend'] = df.loc[nx:,trend_name]
+            if in_range(df.loc[nx]['high'], df.loc[nx][trend_name], pressision):
+                tests = trends.at[trend_row.index[0], re_name] = trends.iloc[-1]['re_test'] + 1
+            if tests >= re_min_tests :
+                # df.loc[bx:,'r1_trend'] = df.loc[bx:,trend_name]
+                df.loc[nx:,'r1_trend'] = df.loc[nx:,trend_name]
+            prev_trends = [col for col in df if col.startswith('trend|')]
+            # print (prev_trends)
+            # print('prev_trend: ',prev_trends.ix[nx,prev_trends.lt(ny).max()])
+            # bx = nx
+            # by = ny
+            # else:
+            #     bx = nx
+            #     by = ny
+            # ax = bx
+            # ay = by
+            # prev_ai.append(i)
+            # bx = nx
+            # by = ny
             bx = nx
             by = ny
-
-        if i == last:
+        if ib == last:
+            # print (trends)
             b = False
-        i += 1
+        ib += 1
     print("--- %s seconds ---" % (time.time() - start_time))
     return df
