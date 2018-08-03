@@ -23,11 +23,7 @@ class trendOHCL001(IStrategy):
 
     # Minimal ROI designed for the strategy
     minimal_roi = {
-        # "40":  0.00001,
-        # "30":  0.002,
-        # "60":  0.005,
-        # "30":  0.02,
-        "0":  0.02
+        "0":  0.04
     }
 
     # Optimal stoploss designed for the strategy
@@ -68,9 +64,9 @@ class trendOHCL001(IStrategy):
         # dataframe['mfi'] = ta.MFI(dataframe)
 
         dataframe = get_trends_lightbuoy_OHCL(dataframe,
-            interval=self.ticker_interval, pivot_type='fractals',
-            pressision=0.00001, su_min_tests=4, re_min_tests=1, body_min_tests=1, ticker_gap = 5, fake=0.0001, nearby=0.001,
-            angle_max = 100, angle_min = 80,
+            interval=self.ticker_interval, pivot_type='pivots',
+            pressision=0.001, su_min_tests=3, re_min_tests=2, body_min_tests=1, ticker_gap = 5, fake=0.001, nearby=0.001,
+            angle_max = 180, angle_min = 0,
             thresh_up = 0.01, thresh_down = -0.01,
             chart=False, pair=metadata['pair'])
 
@@ -96,16 +92,22 @@ class trendOHCL001(IStrategy):
 
         dataframe.loc[
             (
-                ((dataframe['close'] * 10000000 > 1))
-                &
-                (dataframe['close'] == dataframe.s1_trend)
+                # (dataframe['close'].rolling(window=20).mean() > 10))
+                # &
+                # (in_range(dataframe['low'], (dataframe['s1_trend'] * 0.995), 0.005))
+                # &
+                # (dataframe['close'] == dataframe['low'])
+                # &
+                (dataframe['close'] <= dataframe['s1_trend'])
                 # |
                 # (dataframe['close'] > dataframe.re_trend)
                 # (dataframe['close'] <= dataframe.sup_trend)
                 # &
-                # (dataframe['volume'].shift(1) < dataframe['volume']/10)
+                # (dataframe['volume'].shift(1) < dataframe['volume']/2)
                 # &
-                # (dataframe['rsi'] < 25)
+                # (dataframe['close'].shift(1) > dataframe['close'])
+                # &
+                # (dataframe['rsi'] < 20)
                 # &
                 # (dataframe.r1_trend >= dataframe.s1_trend*1.03)
                 # (dataframe['close']==dataframe['sup_trend'])
@@ -115,7 +117,7 @@ class trendOHCL001(IStrategy):
 
 
         # UNCOMMENT TO PLOT
-        self.plot_dataframe(dataframe, metadata['pair'], 'buy', ['s1_trend,r1_trend', '', 'rsi'])
+        # self.plot_dataframe(dataframe, metadata['pair'], 'buy', ['s1_trend,r1_trend', '', 'rsi'])
 
         return dataframe
 
@@ -129,15 +131,13 @@ class trendOHCL001(IStrategy):
             (
                 (dataframe['close'] >= dataframe['r1_trend'])
                 |
-                (dataframe['close'] <= dataframe['s1_trend'] * 0.99)
+                (dataframe['close'] <= dataframe['s1_trend'] * 0.98)
                 # |
                 # (dataframe['close'] <= dataframe['sup_trend'] * (1 - dataframe.iloc[-1].bb_exp))
                 # 0
             ),
             'sell'] = 1
 
-        # UNCOMMENT TO PLOT
-        self.plot_dataframe(dataframe, metadata['pair'], 'sell', ['s1_trend,r1_trend', '', 'rsi'])
         return dataframe
 
 
