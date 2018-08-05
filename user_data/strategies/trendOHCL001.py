@@ -23,7 +23,7 @@ class trendOHCL001(IStrategy):
 
     # Minimal ROI designed for the strategy
     minimal_roi = {
-        "0":  0.04
+        "0":  0.01
     }
 
     # Optimal stoploss designed for the strategy
