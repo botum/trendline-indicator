@@ -26,13 +26,107 @@ import subprocess
 
 import json
 
-from pandas import DataFrame, Series, to_datetime, isna, notna
+from pandas import DataFrame, Series, to_datetime, isna, notna, read_sql
 import numpy as np
 
 import time
 from datetime import datetime
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+
+import arrow
+from sqlalchemy import (Boolean, Column, DateTime, Float, Integer, String,
+                        create_engine, inspect)
+from sqlalchemy.exc import NoSuchModuleError
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm.scoping import scoped_session
+from sqlalchemy.orm.session import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+base = declarative_base()
+
+def init() -> None:
+    """
+    Initializes this module with the given config,
+    registers all known command handlers
+    and starts polling for message updates
+    :param config: config to use
+    :return: None
+    """
+    db_url = "sqlite:///trends.sqlite"
+    kwargs = {}
+
+    # Take care of thread ownership if in-memory db
+    if db_url == 'sqlite://':
+        kwargs.update({
+            'connect_args': {'check_same_thread': False},
+            'poolclass': StaticPool,
+            'echo': False,
+        })
+
+    try:
+        engine = create_engine(db_url, **kwargs)
+    except NoSuchModuleError:
+        raise OperationalException(f'Given value for db_url: \'{db_url}\' '
+                                   f'is no valid database URL! (See {_SQL_DOCS_URL})')
+
+    session = scoped_session(sessionmaker(bind=engine, autoflush=True, autocommit=True))
+    Trend.session = session()
+    Trend.query = session.query_property()
+    base.metadata.create_all(engine)
+
+
+def cleanup() -> None:
+    """
+    Flushes all pending operations to disk.
+    :return: None
+    """
+    Trend.session.flush()
+
+class Trend(base):
+    """
+    Class used to define a trend. Any line we find a pattern starting from two
+    (or min tests).
+    """
+    __tablename__ = 'trends'
+
+    id = Column(Integer, primary_key=True)
+    pair = Column(String, nullable=False)
+    serie = Column(String, nullable=False)
+    parent = Column(Integer, nullable=True)
+    ad = Column(DateTime, nullable=False, default=datetime.utcnow)
+    ay = Column(Float, nullable=True, default=0.0)
+    bd = Column(DateTime, nullable=False, default=datetime.utcnow)
+    by = Column(Float, nullable=True, default=0.0)
+    su_tests = Column(Integer, primary_key=True)
+    re_tests = Column(Integer, primary_key=True)
+    volume = Column(Float, nullable=True, default=0.0)
+    ticker_interval = Column(Integer, nullable=True)
+
+
+    def __repr__(self):
+        return (f'Trend(id={self.id}, pair={self.pair}, ad={self.ad}, '
+                f'bd={self.bd}, )')
+
+    def update(self, df):
+        """Find new waves and create new lightbuoys"""
+
+        # get last lightbuoy
+        return None
+
+    def get_tests_volume(self, rate: float) -> None:
+        """
+        Sets close_rate to the given rate, calculates total profit
+        and marks trade as closed
+        """
+        return None
+
+    def get_parents(self, rate: float) -> None:
+        """
+        Sets close_rate to the given rate, calculates total profit
+        and marks trade as closed
+        """
+        return None
 
 def plot_trends(df, interval: int, abn: int=0, pair: str=None, filename: str=None, cols=[], i: int=0, debug: bool=False):
     plt.figure(num=0, figsize=(20,10))
@@ -125,8 +219,9 @@ def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, pressision: int, piv
 
     # df = get_fractals(df)
 
-    trends = DataFrame()
+    trends = read_sql(Trend.session.query(Trend).filter(Trend.pair == pair).statement,Trend.session.bind)
 
+    print ('current trends: ',trends)
     r = df.loc[df[pivot_type]==1]
     rx = r.index[0]
     ry = r.iloc[0].high
@@ -158,7 +253,6 @@ def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, pressision: int, piv
     while b:
         # print ('start ---', i)
         # trace first trend
-        # print('trend: ')
         if plot_animation:
             plot_trends(df, interval=interval, pair=pair, abn=[ax, bx, nx], i=i, filename='temp_plot'+str(i)+'.png')
         if i == last:
@@ -168,13 +262,20 @@ def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, pressision: int, piv
             nx = p.index[i]
             ny = p.iloc[i].low
 
-        df, trend_name, angle = trend_to_dataframe(df, ax, ay, bx, by)
+        # df, trend_name, angle = trend_to_dataframe(df, ax, ay, bx, by)
+        # print('ax: ',ax)
+        # print('bx: ',bx)
+        # print(p)
+        ad = p.loc[ax].date
+        bd = p.loc[bx].date
+
+        angle = calculate_angle(ax, ay, bx, by)
+
         trends = trends.append({
-                'name':trend_name,
-                'interval':interval,
-                'ax':ax,
+                'interval':interval[:-1],
+                'ad':ad,
                 'ay':ay,
-                'bx':bx,
+                'bd':bd,
                 'by':by,
                 'angle':angle,
                 'su_test':2, # just so we know last totals
@@ -182,12 +283,20 @@ def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, pressision: int, piv
                 'body_test':0
                 }, ignore_index=True)
         trend_row = trends.iloc[-1]
+        trend_name = trend_row.name
+        print (trend_name)
 
+        print('trend: ')
+        print(df.loc[nx][trend_name])
         cond =  angle >= angle_min and angle <= angle_max
 
         # df.loc[bx:,'s1_trend'] = df.loc[bx:,trend_name]
+        a = np.array([ax,ay])
+        b = np.array([bx,by])
+        n = np.array([nx,ny])
+        is_above = lambda p,a,b: np.cross(p-a, b-a) <= 0
 
-        if ny >= (df.loc[nx][trend_name] * 1-fake) and cond:
+        if is_above(n,a,b) and cond:
             # print('going up')
             if in_range(ny, df.loc[nx][trend_name] * 1-fake, pressision):
                 tests = trends.at[trends.index[-1], 'su_test'] = int(trend_row['su_test'] + 1)
@@ -281,6 +390,8 @@ def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, pressision: int, piv
             b = False
         else:
             i += 1
+
+    df.to_sql('trends', con=Trend.session, if_exists='append')
     # print("--- %s seconds ---" % (time.time() - start_time))filename = 'chart_plots/' + pair.replace('/', '-') + '-' +  interval + \
 
     # Plot animation
@@ -294,3 +405,6 @@ def get_trends_lightbuoy_OHCL(df: DataFrame, interval: int, pressision: int, piv
         # doit with magic
         # subprocess.call(['convert', '-delay 100', '*.png', filename])
     return df
+
+
+init()
