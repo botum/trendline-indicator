@@ -65,10 +65,11 @@ class trendOHCL001(IStrategy):
 
         dataframe = get_trends_lightbuoy_OHCL(dataframe,
             interval=self.ticker_interval, pivot_type='pivots',
-            pressision=0.001, su_min_tests=3, re_min_tests=2, body_min_tests=1, ticker_gap = 5, fake=0.001, nearby=0.001,
+            pressision=0.001, su_min_tests=2, re_min_tests=2, body_min_tests=1, ticker_gap = 5, fake=0.001, nearby=0.001,
             angle_max = 180, angle_min = 0,
-            thresh_up = 0.01, thresh_down = -0.01,
-            chart=False, pair=metadata['pair'])
+            thresh_up = 0.005, thresh_down = -0.005,
+            chart=False, pair=metadata['pair'], plot_animation = True, debug=True)
+
 
         # dataframe, su, re = get_sure_zigzag_OHCL(self, dataframe,
         #             intervals=[self.ticker_interval], quantile=0.03,
