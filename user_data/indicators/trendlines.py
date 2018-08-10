@@ -259,8 +259,8 @@ class Pivot(object):
     # def vehicle_type(self):
     #     """"Return a string representing the type of vehicle this is."""
     #     pass
-    
-class Example():
+
+class Pivot():
     def __init__(self):
         self.__pList = []
     def addPerson(self,name,number):
