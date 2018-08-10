@@ -234,15 +234,16 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
     os.chdir('/home/bruno/Documentos/work/bitcoins/traders/freqtrade/chart_plots/')
 
 
-    pivot_filename = pair.replace('/', '-') + pivot_type + '.json'
-    print ('try loading pivots ', pivot_filename)
+    pivot_filename = pair.replace('/', '-') + pivot_type + '_' + interval +'.json'
+    if debug:
+        print ('try loading pivots ', pivot_filename)
 
     try:
         with open(pivot_filename, 'r') as f:
             data = json.load(f)
             df = df.append(data)
     except Exception as e:
-        print ('exception: ', e)
+        # print ('exception: ', e)
         if pivot_type == 'pivots':
             df, pivots = get_pivots_OHCL(df, period=20, stdv= .8,
                         interval=interval, thresh_type = '',
@@ -257,8 +258,8 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
     p = s
     # df = get_fractals(df)
 
-    trend_filename = pair.replace('/', '-') + '_trends.json'
-    print ('try loading trends ', trend_filename)
+    trend_filename = pair.replace('/', '-') + '_' + interval  + '_trends.json'
+    # print ('try loading trends ', trend_filename)
 
     try:
         with open(trend_filename, 'r') as f:
@@ -266,11 +267,11 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
             trends.ad = pd.to_datetime(trends.ad.tz_localize(None))
             trends.bd = pd.to_datetime(trends.bd.tz_localize(None))
     except Exception as e:
-        print ('exception: ', e)
+        # print ('exception: ', e)
         trends = pd.DataFrame({})
 
     if len(trends.index) > 0:
-        print (len(trends.index), ' trends loaded')
+        # print (len(trends.index), ' trends loaded')
         current_trend = trends.iloc[-1]
         ad = current_trend['ad']
         ax = df.index[df['date'] == current_trend['ad']]
@@ -299,8 +300,8 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
 
         # right now to get point N we have to wait for the next height pivot point,
         # this could be done with fractals
-        nx = p.index[2]
-        ny = p.iloc[2].low
+        # nx = p.index[2]
+        # ny = p.iloc[2].low
 
         last=len(p)
         i = 2
@@ -312,15 +313,12 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
 
     a = [ax,ay]
     b = [bx,by]
-    n = [nx,ny]
         # plot_trends(df, interval=interval, pair=pair, abn=nx)
 
     next_pivot=True
     while next_pivot:
         # print ('start ---', i)
         # trace first trend
-        if plot_animation:
-            plot_trends(df, interval=interval, pair=pair, abn=[a[0], b[0], n[0]], i=i, filename='temp_plot'+str(i)+'.png')
         if i == last:
             nx = df.index[-1]
             ny = df.iloc[-1].low
@@ -333,6 +331,8 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
         # print('ax: ',ax)
         # print('bx: ',bx)
         # print(p)
+        if plot_animation:
+            plot_trends(df, interval=interval, pair=pair, abn=[a[0], b[0], n[0]], i=i, filename='temp_plot'+str(i)+'.png')
 
         angle = calculate_angle(a, b)
 
@@ -371,7 +371,8 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
         ty = point_in_trend(a,b,n)
 
         if is_above(n,a,b) and cond:
-            # print('going up')
+            if debug:
+                print('going up')
             if in_range(ny, ty * 1-fake, pressision):
                 conf_list = trend_row['su_tests']
                 conf_list.append(n)
@@ -384,12 +385,13 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
                 #         # and (df.iloc[nx][trend_name]) >= df.iloc[nx]['low']
             if su_tests >= su_min_tests and cond:
                 conf_point = trend_row['su_tests'][su_min_tests-1]
-                df.loc[conf_point[0]:n[0],'s1_trend_conf'] = trend_to_dataframe(df.index, a, b)
                 # print(conf_point)
+                df.loc[conf_point[0]:,'s1_trend_conf'] = trend_to_dataframe(df.index[:], a, b)
             else:
                 conf_point = trend_row['su_tests'][-1]
-                df.loc[conf_point[0]:n[0],'s1_trend_not_conf'] = trend_to_dataframe(df.index, a, b)
-                df.loc[conf_point[0]:n[0],'s1_trend'] = trend_to_dataframe(df.index, a, b)
+                # print (conf_point)
+                df.loc[conf_point[0]:,'s1_trend_not_conf'] = trend_to_dataframe(df.index[:], a, b)
+                df.loc[conf_point[0]:,'s1_trend'] = trend_to_dataframe(df.index[:], a, b)
 
             # df.loc[ax:,'s1_trend'] = df.loc[ax:,trend_name]
             if debug:
@@ -410,7 +412,8 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
 
             # print (trend_row)
         else:
-            # print('going down')
+            if debug:
+                print('going down')
             found_su = False
             # df.loc[nx:,'s1_trend'] = np.nan
             # if cond == True and (df.iloc[nx][trend_name]) <= df.iloc[nx]['low'] and angle > 90:
@@ -427,17 +430,16 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
                 df.loc[n[0]:, 'r1_trend_not_conf'] = trend_to_dataframe(df.index, a, b)
             # check previous one by one in order of addition if they are our next/current support
             for it, t in trends.iloc[::-1].iterrows():
-                # print(df[df['date']==t['ad']].index.values.astype(int)[0])
                 st_ax = df[df['date']==t['ad']].index.values.astype(int)[0]
                 st_ay = t['ay']
                 st_a = [st_ax,st_ay]
-                # print ('test support st_ax: ', st_ax)
                 st_bx = df[df['date']==t['bd']].index.values.astype(int)[0]
                 st_by = t['by']
                 st_b = [st_bx,st_by]
                 su_trend_name = 'trend_'+pivot_type+'_'+ad.strftime("%s")+'_'+bd.strftime("%s")
                 df.loc[st_a[0]:, su_trend_name] = trend_to_dataframe(df.index, st_a, st_b)
                 if debug:
+                    print ('test support st_ax: ', st_ax)
                     plot_trends(df, interval=interval, pair=pair, abn=[st_a[0], st_b[0], n[0]],
                     i=i, filename='temp_plot'+str(i)+'.png', debug=debug)
                     print ('st_ax: ', st_ax)
@@ -447,10 +449,11 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
                     print ('nx: ', nx)
                     print ('ny: ', ny)
                 if is_above(n,st_a,st_b) and cond:
-                    # print ('support found: ', t['name'])
+                    if debug:
+                        print ('support found: ', t['name'])
                     if len(t['su_tests']) >= su_min_tests:
                         conf_point = t['su_tests'][su_min_tests-1]
-                        df.loc[n[0]:, 's1_trend_conf'] = trend_to_dataframe(df.index, st_a, st_b)
+                        df.loc[:, 's1_trend_conf'] = trend_to_dataframe(df.index, st_a, st_b)
                         a = st_a
                         b = st_b
                         found_su = True
@@ -474,7 +477,7 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
                     angle = calculate_angle(a, n)
                     min_su_trend_name = 'trend_'+pivot_type+'_'+ad.strftime("%s")+'_'+bd.strftime("%s")
                     lb_n_angles = np.append(lb_n_angles, [lightbuoy.name, angle], axis=0)
-                    df.loc[lb_a[0]:, min_su_trend_name] = trend_to_dataframe(df.index, lb_a, st_b)
+                    df.loc[lb_a[0]:, min_su_trend_name] = trend_to_dataframe(df.index[lb_a[0]:], lb_a, st_b)
                     if debug:
                         plot_trends(df, interval=interval, pair=pair, abn=[lb_a[0], b[0], n[0]],
                         i=i, filename='temp_plot'+str(i)+'.png', debug=debug)
