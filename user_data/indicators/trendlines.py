@@ -215,6 +215,111 @@ def is_above(p,a,b):
     p = np.array([p[0], p[1]])
     return np.cross(p-a, b-a) <= 0
 
+
+from abc import ABCMeta, abstractmethod
+
+class Pivot(object):
+    """A point of change of direction in market.
+
+
+    Attributes:
+        pair: .
+        x: Date.
+        y: Price.
+        direction: Support or resistance.
+        volume: Volume traded in that tick.
+    """
+
+    __metaclass__ = ABCMeta
+
+    x = 0
+    y = 0
+    direction = 0
+    volume = 0
+
+    def __init__(self, pair, x, y, direction, volume):
+        self.pair = pair
+        self.x = x
+        self.y = y
+        self.direction = direction
+        self.volume = volume
+
+    def x_in_dataframe(self, df):
+        """Return the x position of this date in the incomming DF."""
+
+        return df
+
+    # def purchase_price(self):
+    #     """Return the price for which we would pay to purchase the vehicle."""
+    #     if self.sold_on is None:
+    #         return 0.0  # Not yet sold
+    #     return self.base_sale_price - (.10 * self.miles)
+    #
+    # @abstractmethod
+    # def vehicle_type(self):
+    #     """"Return a string representing the type of vehicle this is."""
+    #     pass
+    
+class Example():
+    def __init__(self):
+        self.__pList = []
+    def addPerson(self,name,number):
+        self.__pList.append(Person(name,number))
+    def findPerson(self, **kwargs):
+        return next(self.__iterPerson(**kwargs))
+    def allPersons(self, **kwargs):
+        return list(self.__iterPerson(**kwargs))
+    def __iterPerson(self, **kwargs):
+        return (person for person in self.__pList if person.match(**kwargs))
+
+class Person():
+    def __init__(self,name,number):
+        self.nom = name
+        self.num = number
+    def __repr__(self):
+        return "Person('%s', %d)" % (self.nom, self.num)
+    def match(self, **kwargs):
+        return all(getattr(self, key) == val for (key, val) in kwargs.items())
+class Trend(object):
+    """A point of change of direction in market.
+
+
+    Attributes:
+        pair: .
+        x: Date.
+        y: Price.
+        direction: Support or resistance.
+        volume: Volume traded in that tick.
+    """
+
+    __metaclass__ = ABCMeta
+
+    x = 0
+    y = 0
+    direction = 0
+    volume = 0
+
+    def __init__(self, pair, x, y, direction, volume):
+        self.pair = pair
+        self.x = x
+        self.y = y
+        self.direction = direction
+        self.volume = volume
+
+    def x_in_dataframe(self, df):
+        """Return the x position of this date in the incomming DF."""
+
+        return df
+class Car(Vehicle):
+    """A car for sale by Jeffco Car Dealership."""
+
+    base_sale_price = 8000
+    wheels = 4
+
+    def vehicle_type(self):
+        """"Return a string representing the type of vehicle this is."""
+        return 'car'
+
 def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, pivot_type: str, \
                      su_min_tests: int, re_min_tests: int, body_min_tests: int, \
                      ticker_gap: int, fake: int, nearby: int, angle_min: int, \
