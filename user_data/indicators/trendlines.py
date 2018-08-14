@@ -34,104 +34,6 @@ from datetime import datetime
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 
-import arrow
-from sqlalchemy import (Boolean, Column, DateTime, Float, Integer, String,
-                        create_engine, inspect)
-from sqlalchemy.exc import NoSuchModuleError
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm.scoping import scoped_session
-from sqlalchemy.orm.session import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-base = declarative_base()
-
-def init() -> None:
-    """
-    Initializes this module with the given config,
-    registers all known command handlers
-    and starts polling for message updates
-    :param config: config to use
-    :return: None
-    """
-    db_url = "sqlite:///trends.sqlite"
-    kwargs = {}
-
-    # Take care of thread ownership if in-memory db
-    if db_url == 'sqlite://':
-        kwargs.update({
-            'connect_args': {'check_same_thread': False},
-            'poolclass': StaticPool,
-            'echo': False,
-        })
-
-    try:
-        engine = create_engine(db_url, **kwargs)
-    except NoSuchModuleError:
-        raise OperationalException(f'Given value for db_url: \'{db_url}\' '
-                                   f'is no valid database URL! (See {_SQL_DOCS_URL})')
-
-    session = scoped_session(sessionmaker(bind=engine, autoflush=True, autocommit=True))
-    Trend.session = session()
-    Trend.query = session.query_property()
-    base.metadata.create_all(engine)
-
-
-def cleanup() -> None:
-    """
-    Flushes all pending operations to disk.
-    :return: None
-    """
-    Trend.session.flush()
-
-class Trend(base):
-    """
-    Class used to define a trend. Any line we find a pattern starting from two
-    (or min tests).
-    """
-    __tablename__ = 'trends'
-
-    id = Column(Integer, primary_key=True)
-    # index = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    pair = Column(String, nullable=False)
-    serie = Column(String, nullable=False)
-    parent = Column(Integer, nullable=True)
-    ad = Column(DateTime, nullable=False)
-    ay = Column(Float, nullable=True, default=0.0)
-    bd = Column(DateTime, nullable=False)
-    by = Column(Float, nullable=True, default=0.0)
-    angle = Column(Float, nullable=True, default=0.0)
-    su_tests = Column(Integer, primary_key=True)
-    re_tests = Column(Integer, primary_key=True)
-    body_tests = Column(Integer, primary_key=True)
-    volume = Column(Float, nullable=True, default=0.0)
-    interval = Column(Integer, nullable=True)
-
-
-    def __repr__(self):
-        return (f'Trend(id={self.id}, pair={self.pair}, ad={self.ad}, '
-                f'bd={self.bd}, )')
-
-    def update(self, df):
-        """Find new waves and create new lightbuoys"""
-
-        # get last lightbuoy
-        return None
-
-    def get_tests_volume(self, rate: float) -> None:
-        """
-        Sets close_rate to the given rate, calculates total profit
-        and marks trade as closed
-        """
-        return None
-
-    def get_parents(self, rate: float) -> None:
-        """
-        Sets close_rate to the given rate, calculates total profit
-        and marks trade as closed
-        """
-        return None
-
 def plot_trends(df, interval: int, abn: int=0, pair: str=None, filename: str=None, cols=[], i: int=0, debug: bool=False):
     plt.figure(num=0, figsize=(20,10))
     # df['old_date'] = df['date']
@@ -184,13 +86,13 @@ def plot_trends(df, interval: int, abn: int=0, pair: str=None, filename: str=Non
         res_pivots = df['pivots'] == 1
         sup_pivots = df['pivots'] == -1
 
-        plt.scatter(df.index[res_pivots], df.high[res_pivots], color='k', s=30)
-        plt.scatter(df.index[sup_pivots], df.low[sup_pivots], color='k', s=30)
+        plt.scatter(df.index[res_pivots], df.high[res_pivots], color='k', s=20, alpha=0.2)
+        plt.scatter(df.index[sup_pivots], df.low[sup_pivots], color='k', s=20, alpha=0.2)
 
     plt.scatter(df.index[abn[0]], df.low[abn[0]], color='r', s=60)
     plt.scatter(df.index[abn[1]], df.low[abn[1]], color='g', s=60)
     plt.scatter(df.index[abn[2]], df.low[abn[2]], color='b', s=60)
-    os.chdir('/home/bruno/Documentos/work/bitcoins/traders/freqtrade/chart_plots/')
+    # os.chdir('/home/bruno/Documentos/work/bitcoins/traders/freqtrade/chart_plots/')
 
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     if debug:
@@ -218,107 +120,128 @@ def is_above(p,a,b):
 
 from abc import ABCMeta, abstractmethod
 
-class Pivot(object):
-    """A point of change of direction in market.
+# class Pivot(object):
+#     """A point of change of direction in market.
+#
+#
+#     Attributes:
+#         pair: .
+#         x: Date.
+#         y: Price.
+#         direction: Support or resistance.
+#         volume: Volume traded in that tick.
+#     """
+#
+#     __metaclass__ = ABCMeta
+#
+#     x = 0
+#     y = 0
+#     direction = 0
+#     volume = 0
+#
+#     def __init__(self, pair, x, y, direction, volume):
+#         self.pair = pair
+#         self.x = x
+#         self.y = y
+#         self.direction = direction
+#         self.volume = volume
+#
+#     def x_in_dataframe(self, df):
+#         """Return the x position of this date in the incomming DF."""
+#
+#         return df
+#
+#     # def purchase_price(self):
+#     #     """Return the price for which we would pay to purchase the vehicle."""
+#     #     if self.sold_on is None:
+#     #         return 0.0  # Not yet sold
+#     #     return self.base_sale_price - (.10 * self.miles)
+#     #
+#     # @abstractmethod
+#     # def vehicle_type(self):
+#     #     """"Return a string representing the type of vehicle this is."""
+#     #     pass
 
-
-    Attributes:
-        pair: .
-        x: Date.
-        y: Price.
-        direction: Support or resistance.
-        volume: Volume traded in that tick.
-    """
-
-    __metaclass__ = ABCMeta
-
-    x = 0
-    y = 0
-    direction = 0
-    volume = 0
-
-    def __init__(self, pair, x, y, direction, volume):
-        self.pair = pair
-        self.x = x
-        self.y = y
-        self.direction = direction
-        self.volume = volume
-
-    def x_in_dataframe(self, df):
-        """Return the x position of this date in the incomming DF."""
-
-        return df
-
-    # def purchase_price(self):
-    #     """Return the price for which we would pay to purchase the vehicle."""
-    #     if self.sold_on is None:
-    #         return 0.0  # Not yet sold
-    #     return self.base_sale_price - (.10 * self.miles)
-    #
-    # @abstractmethod
-    # def vehicle_type(self):
-    #     """"Return a string representing the type of vehicle this is."""
-    #     pass
+class TrendLine():
+    def __init__(self,name,number):
+        self.a = Pivot()
+        self.b = Pivot()
+        self.interval = interval
+        self.angle = angle
+        self.__su_tests = [self.a, self.b], # we already have two touches.
+        self.__re_tests = []
+        self.__body_tests = []
+    def add_su_test(self,pivot):
+        self.__su_tests.append(Pivot())
+    def get_all_tests(self, **kwargs):
+        return list(self.__iterTests(**kwargs))
+    def __iterTests(self, **kwargs):
+        return (pivot for pivot in self.__su_tests if pivot.match(**kwargs))
+    def get_angle(self):
+        return self.angle
 
 class Pivot():
-    def __init__(self):
-        self.__pList = []
-    def addPerson(self,name,number):
-        self.__pList.append(Person(name,number))
-    def findPerson(self, **kwargs):
-        return next(self.__iterPerson(**kwargs))
-    def allPersons(self, **kwargs):
-        return list(self.__iterPerson(**kwargs))
-    def __iterPerson(self, **kwargs):
-        return (person for person in self.__pList if person.match(**kwargs))
-
-class Person():
-    def __init__(self,name,number):
-        self.nom = name
-        self.num = number
-    def __repr__(self):
-        return "Person('%s', %d)" % (self.nom, self.num)
-    def match(self, **kwargs):
-        return all(getattr(self, key) == val for (key, val) in kwargs.items())
-class Trend(object):
-    """A point of change of direction in market.
-
-
-    Attributes:
-        pair: .
-        x: Date.
-        y: Price.
-        direction: Support or resistance.
-        volume: Volume traded in that tick.
-    """
-
-    __metaclass__ = ABCMeta
-
-    x = 0
-    y = 0
-    direction = 0
-    volume = 0
-
     def __init__(self, pair, x, y, direction, volume):
         self.pair = pair
         self.x = x
         self.y = y
         self.direction = direction
         self.volume = volume
-
-    def x_in_dataframe(self, df):
-        """Return the x position of this date in the incomming DF."""
-
-        return df
-class Car(Vehicle):
-    """A car for sale by Jeffco Car Dealership."""
-
-    base_sale_price = 8000
-    wheels = 4
-
-    def vehicle_type(self):
-        """"Return a string representing the type of vehicle this is."""
-        return 'car'
+    def __repr__(self):
+        return "Pivot('%s', %d, %d, '%s', %d)" % \
+                (self.pair, self.x, self.y, self.direction, self.volume)
+    def match(self, **kwargs):
+        return all(getattr(self, key) == val for (key, val) in kwargs.items())
+#
+#
+# class Person():
+#     def __init__(self,name,number):
+#         self.nom = name
+#         self.num = number
+#     def __repr__(self):
+#         return "Person('%s', %d)" % (self.nom, self.num)
+#     def match(self, **kwargs):
+#         return all(getattr(self, key) == val for (key, val) in kwargs.items())
+#
+# class Trend(object):
+#     """A point of change of direction in market.
+#
+#
+#     Attributes:
+#         pair: .
+#         x: Date.
+#         y: Price.
+#         direction: Support or resistance.
+#         volume: Volume traded in that tick.
+#     """
+#
+#     __metaclass__ = ABCMeta
+#
+#     x = 0
+#     y = 0
+#     direction = 0
+#     volume = 0
+#
+#     def __init__(self, pair, x, y, direction, volume):
+#         self.pair = pair
+#         self.x = x
+#         self.y = y
+#         self.direction = direction
+#         self.volume = volume
+#
+#     def x_in_dataframe(self, df):
+#         """Return the x position of this date in the incomming DF."""
+#
+#         return df
+# class Car(Vehicle):
+#     """A car for sale by Jeffco Car Dealership."""
+#
+#     base_sale_price = 8000
+#     wheels = 4
+#
+#     def vehicle_type(self):
+#         """"Return a string representing the type of vehicle this is."""
+#         return 'car'
 
 def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, pivot_type: str, \
                      su_min_tests: int, re_min_tests: int, body_min_tests: int, \
@@ -336,18 +259,24 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
     # print('finding trends - lightbuoy style')
 
     # trends = pd.read_sql(Trend.session.query(Trend).filter(Trend.pair == pair).statement,Trend.session.bind)
-    os.chdir('/home/bruno/Documentos/work/bitcoins/traders/freqtrade/chart_plots/')
+    # os.chdir('/home/bruno/Documentos/work/bitcoins/traders/freqtrade/chart_plots/')
 
-
-    pivot_filename = pair.replace('/', '-') + pivot_type + '.json'
-    print ('try loading pivots ', pivot_filename)
+    dir = 'user_data/indicators/trendlines/'
+    pivot_filename = dir + pair.replace('/', '-') + '_' + pivot_type + '_' + interval + '.pkl'
+    # print ('try loading pivots ', pivot_filename)
 
     try:
-        with open(pivot_filename, 'r') as f:
-            data = json.load(f)
-            df = df.append(data)
+        # with open(pivot_filename, 'r') as f:
+        #     data = json.load(f)
+        #     df = df.append(data)
+        p_saved = pd.read_pickle(pivot_filename)
+        # print (p_saved)
+        print ('pivots start-end: ', p_saved.iloc[0], p_saved.iloc[-1])
+
+        df = pd.concat([df,p_saved], axis=1)
+        # print (len(df), ' pivots loaded')
     except Exception as e:
-        print ('exception: ', e)
+        print ('pivots exception: ', e)
         if pivot_type == 'pivots':
             df, pivots = get_pivots_OHCL(df, period=20, stdv= .8,
                         interval=interval, thresh_type = '',
@@ -355,44 +284,48 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
                         chart=False, pair=pair)
         elif pivot_type == 'fractals':
             df = get_fractals(df)
+        pivots_df = df.set_index('date')[pivot_type]
+        pivots_df.to_pickle(pivot_filename)
+    # print(df[pivot_type])
+    print (df)
 
-    s = df.loc[df[pivot_type]==-1]
 
     # just working with supports now
-    p = s
+    p = df.loc[df[pivot_type]==-1]
+    # print (p)
     # df = get_fractals(df)
 
-    trend_filename = pair.replace('/', '-') + '_trends.json'
-    print ('try loading trends ', trend_filename)
-
+    trend_filename = dir + pair.replace('/', '-') + '_trends.pkl'
     try:
-        with open(trend_filename, 'r') as f:
-            trends = pd.read_json(f, orient='records', lines=True)
-            trends.ad = pd.to_datetime(trends.ad.tz_localize(None))
-            trends.bd = pd.to_datetime(trends.bd.tz_localize(None))
+        trends = pd.read_pickle(trend_filename)
+        df = pd.date_range(trends.iloc[0]['ad'],trends.iloc[-1]['ad']).union(df)
+        # with open(trend_filename, 'r') as f:
+        #     trends = pd.read_json(f, orient='records', lines=True)
+        #     trends.ad = pd.to_datetime(trends.ad.tz_localize(None))
+        #     trends.bd = pd.to_datetime(trends.bd.tz_localize(None))
     except Exception as e:
-        print ('exception: ', e)
+        print ('trends exception: ', e)
         trends = pd.DataFrame({})
 
     if len(trends.index) > 0:
-        print (len(trends.index), ' trends loaded')
+        print ('dataframe start-end: ', df.iloc[0].date, df.iloc[-1].date)
+        print ('last trend: ', trends.iloc[-1].ad)
+        # print (len(trends.index), ' trends loaded')
         current_trend = trends.iloc[-1]
+        # print (current_trend)
         ad = current_trend['ad']
-        ax = df.index[df['date'] == current_trend['ad']]
+        ax = df.index[df['date'] == current_trend['ad']].values[0]
         ay = current_trend['ay']
         bd = current_trend['bd']
-        bx = df.index[df['date'] == current_trend['bd']]
+        bx = df.index[df['date'] == current_trend['bd']].values[0]
+        # print (bx)
         by = current_trend['by']
         nx = p.index[2]
         ny = p.iloc[2].low
-        i = len(p) - p.index[bx]
+        # print (len(p))
+        i = len(p) - len(p.index[bx:])
         last=len(p)
     else:
-        # print ('current trends: ',trends)
-        r = df.loc[df[pivot_type]==1]
-        rx = r.index[0]
-        ry = r.iloc[0].high
-
         ax = p.index[0]
         ad = p.loc[ax].date
         ay = p.iloc[0].low
@@ -410,9 +343,14 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
         last=len(p)
         i = 2
 
-        # initial sure
-        df.loc[0:r.index[1], 'r1_trend'] = ry
-        df.loc[0:p.index[1],'s1_trend'] = p.iloc[0].low
+    # print ('current trends: ',trends)
+    r = df.loc[df[pivot_type]==1]
+    rx = r.index[0]
+    ry = r.iloc[0].high
+
+    # initial sure
+    df.loc[0:r.index[1], 'r1_trend'] = ry
+    df.loc[0:p.index[1],'s1_trend'] = p.iloc[0].low
 
 
     a = [ax,ay]
@@ -442,7 +380,7 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
         angle = calculate_angle(a, b)
 
         trend_name = 'trend_'+pivot_type+'_'+ad.strftime("%s")+'_'+bd.strftime("%s")
-
+        # print (a, b, p)
         ad = p.loc[a[0]].date
         bd = p.loc[b[0]].date
         trends = trends.append({
@@ -510,8 +448,8 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
             a = b
             b = n
 
-            if new_lightbuoy:
-                new_lightbuoy = False
+            # if new_lightbuoy:
+            #     new_lightbuoy = False
 
             # print (trend_row)
         else:
@@ -638,10 +576,17 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
     # df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
     # trends.to_sql('trends', con=Trend.session.bind, if_exists='replace', index_label='id')
     # print("--- %s seconds ---" % (time.time() - start_time))filename = 'chart_plots/' + pair.replace('/', '-') + '-' +  interval + \
-    with open(trend_filename, 'w') as f:
-        f.write(trends.to_json(orient='records', lines=True, date_unit='ns'))
-    with open(pivot_filename, 'w') as f:
-        f.write(df[pivot_type].to_json(orient='records', lines=True, date_unit='ns'))
+    # with open(trend_filename, 'w') as f:
+    #     f.write(trends.to_json(orient='records', lines=True, date_unit='ns'))
+    # with open(pivot_filename, 'w') as f:
+    #     f.write(df[pivot_type].to_json(orient='records', lines=True, date_unit='ns'))
+
+    df.to_pickle(trend_filename)
+    trends.to_pickle(trend_filename)
+    if chart:
+        chart_filename = dir + pair.replace('/', '-') + '_' + pivot_type + '_' + interval + '.png'
+        plot_trends(df, interval=interval, pair=pair, abn=[a[0], b[0], n[0]],
+        filename=chart_filename, i=i, debug=debug)
 
     # Plot animation
     if plot_animation:
@@ -653,6 +598,3 @@ def get_trends_lightbuoy_OHCL(df: pd.DataFrame, interval: int, pressision: int, 
         # doit with magic
         # subprocess.call(['convert', '-delay 100', '*.png', filename])
     return df
-
-
-init()
